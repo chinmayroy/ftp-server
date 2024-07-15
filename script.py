@@ -8,11 +8,24 @@ from watchdog.events import FileSystemEventHandler
 
 # Configuration
 FTP_HOST = "localhost"
-FTP_USER = "user"
-FTP_PASS = "password"
+FTP_USER = "chinmayroy"
+FTP_PASS = "12345"
 TEMP_FOLDER = "./temp"
 LOCAL_FOLDER = "./local"
 TRASH_FOLDER = "./trash"
+
+# Debug area
+def debug_ftp_connection():
+    try:
+        with ftplib.FTP(FTP_HOST) as ftp:
+            ftp.login(FTP_USER, FTP_PASS)
+            print("Logged in successfully.")
+            print("Current remote directory:", ftp.pwd())
+            print("Directory listing:")
+            print(ftp.nlst())
+    except ftplib.all_errors as e:
+        print(f"FTP error: {e}")
+
 
 # Ensure directories exist
 for folder in [TEMP_FOLDER, LOCAL_FOLDER, TRASH_FOLDER]:
@@ -23,17 +36,18 @@ for folder in [TEMP_FOLDER, LOCAL_FOLDER, TRASH_FOLDER]:
 def download_files_from_ftp():
     with ftplib.FTP(FTP_HOST) as ftp:
         ftp.login(FTP_USER, FTP_PASS)
-        ftp.cwd("/home/user")
+        ftp.cwd("/")
         filenames = ftp.nlst()
         
         for filename in filenames:
-            local_temp_path = os.path.join(TEMP_FOLDER, filename)
-            with open(local_temp_path, "wb") as file:
-                ftp.retrbinary(f"RETR {filename}", file.write)
-            
-            # Move to the local folder after download completes
-            local_final_path = os.path.join(LOCAL_FOLDER, filename)
-            shutil.move(local_temp_path, local_final_path)
+            if filename.endswith('.xml'): 
+                local_temp_path = os.path.join(TEMP_FOLDER, filename)
+                with open(local_temp_path, "wb") as file:
+                    ftp.retrbinary(f"RETR {filename}", file.write)
+                
+                # Move to the local folder after download completes
+                local_final_path = os.path.join(LOCAL_FOLDER, filename)
+                shutil.move(local_temp_path, local_final_path)
 
 # Process the XML file
 def process_file(file_path):
@@ -71,5 +85,6 @@ def monitor_local_folder(folder):
 
 # Main function to run the script
 if __name__ == "__main__":
+    debug_ftp_connection()
     download_files_from_ftp()
     monitor_local_folder(LOCAL_FOLDER)
