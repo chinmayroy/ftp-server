@@ -14,7 +14,12 @@ TEMP_FOLDER = "./temp"
 LOCAL_FOLDER = "./local"
 TRASH_FOLDER = "./trash"
 
-# Debug area
+# Ensure directories exist
+for folder in [TEMP_FOLDER, LOCAL_FOLDER, TRASH_FOLDER]:
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+# Debug function to verify FTP connection and directory contents
 def debug_ftp_connection():
     try:
         with ftplib.FTP(FTP_HOST) as ftp:
@@ -26,36 +31,37 @@ def debug_ftp_connection():
     except ftplib.all_errors as e:
         print(f"FTP error: {e}")
 
-
-# Ensure directories exist
-for folder in [TEMP_FOLDER, LOCAL_FOLDER, TRASH_FOLDER]:
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-
 # Download files from FTP server
 def download_files_from_ftp():
-    with ftplib.FTP(FTP_HOST) as ftp:
-        ftp.login(FTP_USER, FTP_PASS)
-        ftp.cwd("/")
-        filenames = ftp.nlst()
-        
-        for filename in filenames:
-            if filename.endswith('.xml'): 
-                local_temp_path = os.path.join(TEMP_FOLDER, filename)
-                with open(local_temp_path, "wb") as file:
-                    ftp.retrbinary(f"RETR {filename}", file.write)
-                
-                # Move to the local folder after download completes
-                local_final_path = os.path.join(LOCAL_FOLDER, filename)
-                shutil.move(local_temp_path, local_final_path)
+    try:
+        with ftplib.FTP(FTP_HOST) as ftp:
+            ftp.login(FTP_USER, FTP_PASS)
+            ftp.cwd("/")  
+            filenames = ftp.nlst()
+            
+            for filename in filenames:
+                if filename.endswith('.xml'): 
+                    local_temp_path = os.path.join(TEMP_FOLDER, filename)
+                    with open(local_temp_path, "wb") as file:
+                        ftp.retrbinary(f"RETR {filename}", file.write)
+                    
+                    # Move to the local folder after download completes
+                    local_final_path = os.path.join(LOCAL_FOLDER, filename)
+                    shutil.move(local_temp_path, local_final_path)
+    
+    except ftplib.all_errors as e:
+        print(f"FTP error: {e}")
 
 # Process the XML file
 def process_file(file_path):
-    tree = ET.parse(file_path)
-    root = tree.getroot()
-    data_dict = {child.tag: child.text for child in root}
-    print(data_dict)
-    move_to_trash(file_path)
+    try:
+        tree = ET.parse(file_path)
+        root = tree.getroot()
+        data_dict = {child.tag: child.text for child in root}
+        print(data_dict)
+        move_to_trash(file_path)
+    except ET.ParseError as e:
+        print(f"Error parsing XML file {file_path}: {e}")
 
 # Move processed file to trash
 def move_to_trash(file_path):
